@@ -126,34 +126,6 @@ def produce_count_and_na(dataframe, colname):
     return dataframe
 
 
-def get_root_domains(dataframe,colname):
-    # Set up logging
-    logger = logging.getLogger(__name__)
-    logger.info('Getting root domains...')
-    
-    # initialise list
-    list_of_rootdomains = list()
-    
-    # Take the colname column of df, strip out the nans (which break urlparser) and add it to urls
-    urls = dataframe[colname].dropna()
-
-    logger.info('This many URLs found: ' + str(len(urls)))
-
-    # User urlparse() to strip out the rootdomain (i.e, netloc) and write it to a list
-    for i in urls:
-        current_url = urlparse(i)
-        list_of_rootdomains.append(current_url.netloc)
-
-    # Convert the list into a df so we can use the same functions as are being used to summarise other data
-    dataframeurl = pd.DataFrame({'rootdomains': list_of_rootdomains})
-
-    logger.info('This many rootdomains found: ' + str(len(dataframeurl)))
-
-    logger.info('This many unique rootdomains found: ' + str(len(dataframeurl.rootdomains.unique())))
-
-    return dataframeurl
-
-
 def plot_bar_charts(dataframe,filename,title,xaxis,yaxis,truncate):
     """
     Takes a two-column dataframe and plots it
@@ -196,36 +168,7 @@ def impact_to_txt(dataframe,colname):
     for i, row in impact_dataframe.iterrows():
         file_for_impacts.write("%s\n" % impact_dataframe[colname][i])
     return
-    
-    
-def check_url_status(dataframe, colname, statuscol):
-    logger = logging.getLogger(__name__)
-    logger.info('Checking URLs...')
-    
-    # Don't want any of the NaNs, so drop the rows in which NaN was entered for the URL
-    dataframe.dropna(subset=[colname], inplace=True)
 
-    h = httplib2.Http()
-    for i, row in dataframe.iterrows():    
-        try:
-            print("Checking " + dataframe[colname][i])
-            response, content = h.request(dataframe[colname][i])
-            if response.status < 400:
-                dataframe[statuscol][i] = response['date']
-        except: 
-            dataframe[statuscol][i] = 'No response'
-
-    #When the URL checker times out without an error, it skips to the next URL and leave a blank in the statuscol
-    # which I want replaced with a 'No response' to making counting easier
-    dataframe[statuscol] = dataframe[statuscol].fillna('No response')
-    
-    #Record no. of dead sites
-    dead_sites = len(dataframe[dataframe[statuscol] == 'No response'])
-    
-    #Log how many dead URLs were found
-    logger.info('This many dead URLs found: ' + str(dead_sites))
-    
-    return dataframe
 
 def main():
     logging.basicConfig(level=logging.DEBUG)
@@ -251,10 +194,7 @@ def main():
 
     df47 = clean_data2(df,'Year First Provided')
     
-    rootdomainsdf = get_root_domains(df,'URL')
-
-    url_check = check_url_status(df,'URL','URL status')
-    url_df = pd.concat([url_check['URL'], url_check['URL status']], axis=1, keys=['URL', 'URL status'])
+    # Here?
     
     open_source_licence = produce_count_and_na(df,'Open Source?')
     open_source_licence.index = open_source_licence.index.fillna('No response')
